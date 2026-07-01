@@ -79,8 +79,7 @@ proporcionalmente à caixa, como no galeria de "Formas" do Word.
 - [x] **Melhoria adicional (fora do enunciado formal)** — a ferramenta de
   polígono por clique-em-cada-vértice foi substituída por um submenu
   **Formas**, com Triângulo, Pentágono, Hexágono e Estrela prontos, que se
-  ajustam à caixa delimitadora arrastada — igual ao galeria de "Formas" do
-  Word. Adicionadas as classes `FormaRegular` (base para polígonos
+  ajustam à caixa delimitadora arrastada. Adicionadas as classes `FormaRegular` (base para polígonos
   regulares de N lados) e `Estrela` em `figuras.py`.
 
 - [ ] **Entrega 3** — a definir conforme o enunciado.
