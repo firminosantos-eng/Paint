@@ -111,12 +111,12 @@ projeto-paint/
 
 | Camada     | Classe(s)                          | Responsabilidade                                                                 |
 |------------|-------------------------------------|-----------------------------------------------------------------------------------|
-| **Model**      | `Figura` e subclasses (`figura.py`) | Geometria e regras de cada tipo de figura, mover, clique/seleção e serialização. **Não depende de Tkinter.** |
-| **Model**      | `Desenho` (`desenho.py`)            | Coleção de figuras: incluir, remover, desfazer, limpar, reordenar (z-order), buscar por ponto/área, serializar. |
-| **Model**      | `RepositorioDesenho` (`repositorio_desenho.py`) | Lê/escreve o `Desenho` em disco (JSON) — só o "envelope" do arquivo, não o formato de cada figura. |
-| **View**       | `Janela` (`janela.py`)              | Monta a interface Tkinter, desenha o estado do Model no Canvas (inclusive seleção), encaminha eventos ao Controller. |
-| **Controller** | `ControladorDesenho` (`controlador_desenho.py`) | Recebe os eventos da View, delega ao Estado (ferramenta) atual, mantém a seleção e a área de transferência, aciona o `RepositorioDesenho`, manda a View se redesenhar. |
-| **Controller** | `EstadoFerramenta` e subclasses (`estado_ferramenta.py`, `estado_selecao.py`) | Padrão *State*: cada ferramenta (Linha, Retângulo, Selecionar, ...) é um estado que sabe reagir aos eventos de mouse. |
+| **Modelo**      | `Figura` e subclasses (`figura.py`) | Geometria e regras de cada tipo de figura, mover, clique/seleção e serialização. **Não depende de Tkinter.** |
+| **Modelo**      | `Desenho` (`desenho.py`)            | Coleção de figuras: incluir, remover, desfazer, limpar, reordenar (z-order), buscar por ponto/área, serializar. |
+| **Modelo**      | `RepositorioDesenho` (`repositorio_desenho.py`) | Lê/escreve o `Desenho` em disco (JSON) — só o "envelope" do arquivo, não o formato de cada figura. |
+| **Visão**       | `Janela` (`janela.py`)              | Monta a interface Tkinter, desenha o estado do Model no Canvas (inclusive seleção), encaminha eventos ao Controller. |
+| **Controlador** | `ControladorDesenho` (`controlador_desenho.py`) | Recebe os eventos da View, delega ao Estado (ferramenta) atual, mantém a seleção e a área de transferência, aciona o `RepositorioDesenho`, manda a View se redesenhar. |
+| **Controlador** | `EstadoFerramenta` e subclasses (`estado_ferramenta.py`, `estado_selecao.py`) | Padrão *State*: cada ferramenta (Linha, Retângulo, Selecionar, ...) é um estado que sabe reagir aos eventos de mouse. |
 
 O fluxo de uma interação é sempre o mesmo:
 
