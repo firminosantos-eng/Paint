@@ -40,8 +40,8 @@ Os scripts de referência das entregas anteriores continuam na raiz, cada
 um abrindo sua própria janela:
 
 ```bash
-python 01-linha.py   # desenha uma única linha (apaga a anterior)
-python 02-linhas.py  # acumula várias linhas
+python 01-linha.py
+python 02-linhas.py
 ```
 
 **Ferramentas disponíveis:** Linha, Rabisco, Retângulo, Oval, e um submenu
@@ -52,6 +52,20 @@ a figura se ajusta a ela.
 **Outras ações:** `Ctrl+Z` (ou o botão "Desfazer") remove a última figura
 incluída. **Salvar** (`Ctrl+S`) grava o desenho atual num arquivo `.json`;
 **Abrir** (`Ctrl+O`) carrega um desenho salvo anteriormente.
+
+**Selecionar e editar (Entrega 5):** com a ferramenta **Selecionar**, clique
+numa figura para selecioná-la, `Ctrl+clique` para adicionar/remover da
+seleção, ou clique e arraste numa área vazia para selecionar por retângulo
+(seleciona as figuras totalmente dentro da área). Com algo selecionado:
+
+- **Mover**: clique numa figura selecionada e arraste.
+- **Apagar**: `Delete`/`Backspace` ou o botão "Apagar".
+- **Copiar/Colar**: `Ctrl+C` / `Ctrl+V` — cola uma cópia deslocada, já selecionada.
+- **Mover para frente/trás**: botões "Trazer para frente" / "Enviar para trás".
+- **Mudar cores**: os botões "Cor da borda" / "Cor de preenchimento" aplicam
+  a nova cor diretamente às figuras selecionadas (em vez de só definir a cor
+  da próxima figura a ser desenhada).
+- Tudo isso funciona com **seleção múltipla**.
 
 ## Como rodar os testes
 
@@ -69,38 +83,40 @@ pytest
 projeto-paint/
 ├── .gitignore
 ├── README.md
-├── requirements-dev.txt   # dependências só para rodar os testes (pytest)
-├── executar.py            # atalho para rodar sem mexer no PYTHONPATH
-├── 01-linha.py             # referência: uma única linha por vez
-├── 02-linhas.py            # referência: várias linhas acumuladas
-├── tests/                  # testes automatizados do Model
+├── requirements-dev.txt
+├── executar.py
+├── 01-linha.py
+├── 02-linhas.py
+├── tests/
 │   ├── conftest.py
 │   ├── test_figura_geometria.py
-│   └── test_serializacao.py
+│   ├── test_serializacao.py
+│   └── test_desenho.py
 └── src/
-    └── paint/              # pacote Python do projeto
-        ├── main.py         # monta Model + View + Controller e inicia o app
+    └── paint/
+        ├── main.py
         ├── modelo/
-        │   ├── figura.py               # hierarquia de classes Figura
-        │   ├── desenho.py              # classe Desenho (coleção de figuras)
-        │   └── repositorio_desenho.py  # leitura/escrita em disco (JSON)
+        │   ├── figura.py
+        │   ├── desenho.py
+        │   └── repositorio_desenho.py
         ├── visao/
-        │   └── janela.py   # classe Janela — interface Tkinter
+        │   └── janela.py
         └── controlador/
-            ├── controlador_desenho.py  # classe ControladorDesenho
-            └── estado_ferramenta.py    # padrão State (uma classe por ferramenta)
+            ├── controlador_desenho.py
+            ├── estado_ferramenta.py
+            └── estado_selecao.py
 ```
 
 ## Arquitetura MVC
 
 | Camada     | Classe(s)                          | Responsabilidade                                                                 |
 |------------|-------------------------------------|-----------------------------------------------------------------------------------|
-| **Model**      | `Figura` e subclasses (`figura.py`) | Geometria e regras de cada tipo de figura, clique/seleção e serialização. **Não depende de Tkinter.** |
-| **Model**      | `Desenho` (`desenho.py`)            | Coleção de figuras concluídas: incluir, desfazer, limpar, serializar a coleção.   |
+| **Model**      | `Figura` e subclasses (`figura.py`) | Geometria e regras de cada tipo de figura, mover, clique/seleção e serialização. **Não depende de Tkinter.** |
+| **Model**      | `Desenho` (`desenho.py`)            | Coleção de figuras: incluir, remover, desfazer, limpar, reordenar (z-order), buscar por ponto/área, serializar. |
 | **Model**      | `RepositorioDesenho` (`repositorio_desenho.py`) | Lê/escreve o `Desenho` em disco (JSON) — só o "envelope" do arquivo, não o formato de cada figura. |
-| **View**       | `Janela` (`janela.py`)              | Monta a interface Tkinter, desenha o estado do Model no Canvas, encaminha eventos ao Controller. |
-| **Controller** | `ControladorDesenho` (`controlador_desenho.py`) | Recebe os eventos da View, delega ao Estado (ferramenta) atual, aciona o `RepositorioDesenho`, manda a View se redesenhar. |
-| **Controller** | `EstadoFerramenta` e subclasses (`estado_ferramenta.py`) | Padrão *State*: cada ferramenta (Linha, Retângulo, ...) é um estado que sabe reagir aos eventos de mouse. |
+| **View**       | `Janela` (`janela.py`)              | Monta a interface Tkinter, desenha o estado do Model no Canvas (inclusive seleção), encaminha eventos ao Controller. |
+| **Controller** | `ControladorDesenho` (`controlador_desenho.py`) | Recebe os eventos da View, delega ao Estado (ferramenta) atual, mantém a seleção e a área de transferência, aciona o `RepositorioDesenho`, manda a View se redesenhar. |
+| **Controller** | `EstadoFerramenta` e subclasses (`estado_ferramenta.py`, `estado_selecao.py`) | Padrão *State*: cada ferramenta (Linha, Retângulo, Selecionar, ...) é um estado que sabe reagir aos eventos de mouse. |
 
 O fluxo de uma interação é sempre o mesmo:
 
@@ -116,7 +132,7 @@ janela gráfica: cada `Figura` não desenha em um Canvas diretamente, ela só
 descreve a si mesma (`descricao_desenho()`), e é a `Janela` quem traduz essa
 descrição para comandos do Tkinter.
 
-## Padrão State (Entrega 4)
+## Padrão State
 
 Antes, o Controller decidia qual classe de `Figura` instanciar com um
 `if tipo == "Linha": ... elif tipo == "Retangulo": ...`. Agora essa decisão
@@ -125,18 +141,19 @@ em `ControladorDesenho.estado_atual`. O Controller não pergunta mais "qual
 ferramenta é essa?" — ele só repassa os três eventos de mouse para o estado:
 
 ```python
-def ao_pressionar_botao(self, x, y):
-    self.estado_atual.ao_pressionar(self, x, y)
+def ao_pressionar_botao(self, x, y, ctrl=False):
+    self.estado_atual.ao_pressionar(self, x, y, ctrl)
 ```
 
-Como as oito ferramentas atuais (Linha, Rabisco, Retângulo, Oval, Triângulo,
+As oito ferramentas de desenho (Linha, Rabisco, Retângulo, Oval, Triângulo,
 Pentágono, Hexágono, Estrela) têm o mesmo comportamento — criar uma figura
-no clique, atualizá-la no arraste, incluí-la no Model ao soltar —, essa
-lógica mora uma única vez em `EstadoDesenharFigura`; cada estado nomeado
-(`EstadoLinha`, `EstadoOval`, ...) só indica qual classe de `Figura`
-instanciar. Trocar de ferramenta no menu chama
-`controlador.selecionar_ferramenta(nome)`, que troca `estado_atual` — sem
-nenhum condicional por tipo.
+no clique, atualizá-la no arraste, incluí-la no Model ao soltar —, então
+essa lógica mora uma única vez em `EstadoDesenharFigura`; cada estado
+nomeado (`EstadoLinha`, `EstadoOval`, ...) só indica qual classe de `Figura`
+instanciar. A ferramenta **Selecionar** (`EstadoSelecao`, Entrega 5) é um
+estado à parte, com sua própria lógica de clique/seleção/arraste. Trocar de
+ferramenta no menu chama `controlador.selecionar_ferramenta(nome)`, que
+troca `estado_atual` — sem nenhum condicional por tipo.
 
 ## Progresso das entregas
 
@@ -194,7 +211,33 @@ nenhum condicional por tipo.
     mover, clique/seleção) e serialização (round-trip e ciclo Salvar/Abrir)
     — 18 testes, todos passando.
 
-- [ ] **Entrega 5** — a definir conforme o enunciado.
+- [x] **Entrega 5** (tag `selecao.5`) — Manipulação de figuras já desenhadas:
+  - Nova ferramenta **Selecionar** (`EstadoSelecao`): clique seleciona uma
+    figura, `Ctrl+clique` alterna a seleção (multi-seleção), clique e
+    arraste numa área vazia faz seleção por retângulo elástico.
+  - **Mover** figura(s) selecionada(s) por arraste (`Figura.mover(dx, dy)`,
+    implementado em todas as subclasses).
+  - **Apagar** (`Delete`/`Backspace`), **Copiar/Colar** (`Ctrl+C`/`Ctrl+V`,
+    reaproveitando `para_dict()`/`figura_de_dict()` da Entrega 4 para
+    clonar), **mover para frente/trás** (`Desenho.mover_para_frente` /
+    `mover_para_tras`, reordenando a lista interna) e **mudar cores** das
+    figuras selecionadas (os botões de cor passam a agir sobre a seleção
+    quando ela não está vazia).
+  - Tudo funciona com **seleção múltipla** (lista `selecionadas` no
+    Controller), incluindo mover, apagar, copiar/colar e mudar cores de
+    várias figuras de uma vez.
+  - Novos métodos do Model, usados pela seleção: `Desenho.remover`,
+    `figura_no_ponto`, `figuras_na_area`, e `Figura.esta_dentro_da_area`
+    (reaproveita `descricao_desenho()`, no mesmo espírito de
+    `contem_ponto`).
+  - Testes novos em `tests/test_desenho.py`, cobrindo remoção, z-order e
+    busca por ponto/área.
+  - **Nota de processo**: o enunciado pede que as tarefas desta entrega
+    sejam divididas entre os integrantes do grupo, com commits individuais
+    de cada aluno no GitHub — isso é organização de equipe, não algo que
+    o código em si expresse; fica registrado aqui como lembrete pra quando
+    vocês forem dividir o trabalho e abrir os PRs/commits.
+
 - [ ] **Entrega 6** (padrão *Composite*) — a definir conforme o enunciado; testes de `tests/` devem crescer junto.
 - [ ] **Entrega 7** (padrão *Command*) — a definir conforme o enunciado; testes de `tests/` devem crescer junto.
 
@@ -218,14 +261,21 @@ Figura (abstrata)
 ```
 
 Toda figura sabe se está incompleta (`incompleta()`), sabe descrever a
-própria geometria (`descricao_desenho()`), sabe responder se um ponto está
-sobre ela (`contem_ponto(x, y)`) e sabe se converter para/de dicionário
-(`para_dict()` / `ClasseFigura.de_dict(...)`) — nada disso depende de
-Tkinter. A `Janela` (View) só traduz `descricao_desenho()` para comandos do
-Canvas; o `RepositorioDesenho` só grava/lê o JSON resultante de
-`para_dict()`. As cores de borda e preenchimento são fixadas no momento em
-que a figura é criada, então trocar a cor selecionada na interface não
-altera figuras já desenhadas.
+própria geometria (`descricao_desenho()`), sabe se mover (`mover(dx, dy)`),
+sabe responder se um ponto está sobre ela (`contem_ponto(x, y)`) ou se está
+totalmente dentro de uma área (`esta_dentro_da_area(...)`, usada na seleção
+por retângulo) e sabe se converter para/de dicionário (`para_dict()` /
+`ClasseFigura.de_dict(...)`) — nada disso depende de Tkinter. A `Janela`
+(View) só traduz `descricao_desenho()` para comandos do Canvas; o
+`RepositorioDesenho` só grava/lê o JSON resultante de `para_dict()`. As
+cores de borda e preenchimento ficam guardadas na própria figura, então o
+Controller pode alterá-las diretamente quando a figura está selecionada.
+
+## Convenções de código
+
+- Código sem comentários (`#`) nem docstrings — nomes de classes, métodos
+  e variáveis em português, descritivos o suficiente para dispensar
+  explicação inline. Documentação de contexto/arquitetura fica neste README.
 
 ## Créditos
 

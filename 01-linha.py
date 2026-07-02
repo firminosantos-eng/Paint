@@ -1,19 +1,12 @@
 import tkinter as tk
 
-# ---------------------------------------------------------------------------
-# 01-linha.py — referência imperativa
-#
-# Desenha uma única linha por vez: a cada novo clique + arraste, a linha
-# anterior é apagada e uma nova é traçada. Não há acumulação de figuras.
-# ---------------------------------------------------------------------------
-
-ponto_inicial = None  # (x, y) de onde o traço começou
+ponto_inicial = None
 
 
 def iniciar_linha(event):
     global ponto_inicial
     ponto_inicial = (event.x, event.y)
-    canvas.delete("all")  # apaga a linha anterior
+    canvas.delete("all")
 
 
 def atualizar_linha(event):

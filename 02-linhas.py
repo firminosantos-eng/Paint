@@ -1,14 +1,7 @@
 import tkinter as tk
 
-# ---------------------------------------------------------------------------
-# 02-linhas.py — referência imperativa
-#
-# Evolução do 01-linha.py: agora as linhas se acumulam numa lista, então
-# cada nova linha desenhada não apaga as anteriores.
-# ---------------------------------------------------------------------------
-
-linhas = []       # lista de linhas já concluídas: cada item é (x0, y0, x1, y1)
-linha_nova = None  # linha em construção (ainda não incluída em "linhas")
+linhas = []
+linha_nova = None
 
 
 def iniciar_linha_nova(event):
@@ -43,7 +36,7 @@ def desenhar_linha_nova():
 
 def incompleta(linha):
     x0, y0, x1, y1 = linha
-    return (x0, y0) == (x1, y1)  # comprimento zero: clique sem arrastar
+    return (x0, y0) == (x1, y1)
 
 
 def main():

@@ -1,4 +1,3 @@
-
 from abc import ABC, abstractmethod
 
 from paint.modelo.figura import (
@@ -7,36 +6,34 @@ from paint.modelo.figura import (
 
 
 class EstadoFerramenta(ABC):
-
     @abstractmethod
-    def ao_pressionar(self, controlador, x, y):
+    def ao_pressionar(self, controlador, x, y, ctrl=False):
         raise NotImplementedError
 
     @abstractmethod
-    def ao_arrastar(self, controlador, x, y):
+    def ao_arrastar(self, controlador, x, y, ctrl=False):
         raise NotImplementedError
 
     @abstractmethod
-    def ao_soltar(self, controlador, x, y):
+    def ao_soltar(self, controlador, x, y, ctrl=False):
         raise NotImplementedError
 
 
 class EstadoDesenharFigura(EstadoFerramenta):
+    CLASSE_FIGURA = None
 
-    CLASSE_FIGURA = None 
-
-    def ao_pressionar(self, controlador, x, y):
+    def ao_pressionar(self, controlador, x, y, ctrl=False):
         controlador.figura_nova = self.CLASSE_FIGURA(
             x, y, controlador.cor_borda_atual, controlador.cor_preenchimento_atual
         )
         controlador.atualizar_view()
 
-    def ao_arrastar(self, controlador, x, y):
+    def ao_arrastar(self, controlador, x, y, ctrl=False):
         if controlador.figura_nova is not None:
             controlador.figura_nova.atualizar(x, y)
             controlador.atualizar_view()
 
-    def ao_soltar(self, controlador, x, y):
+    def ao_soltar(self, controlador, x, y, ctrl=False):
         if controlador.figura_nova is not None:
             controlador.desenho.incluir(controlador.figura_nova)
             controlador.figura_nova = None
@@ -73,15 +70,3 @@ class EstadoHexagono(EstadoDesenharFigura):
 
 class EstadoEstrela(EstadoDesenharFigura):
     CLASSE_FIGURA = Estrela
-
-
-ESTADOS_FERRAMENTA = {
-    "Linha": EstadoLinha(),
-    "Rabisco": EstadoRabisco(),
-    "Retangulo": EstadoRetangulo(),
-    "Oval": EstadoOval(),
-    "Triangulo": EstadoTriangulo(),
-    "Pentagono": EstadoPentagono(),
-    "Hexagono": EstadoHexagono(),
-    "Estrela": EstadoEstrela(),
-}

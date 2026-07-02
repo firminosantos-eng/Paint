@@ -1,4 +1,3 @@
-
 from paint.modelo.figura import (
     Linha, Retangulo, Oval, Rabisco, Triangulo, Estrela,
 )
@@ -63,9 +62,9 @@ def test_retangulo_contem_ponto_mesmo_com_arraste_invertido():
 
 
 def test_oval_contem_ponto_dentro_da_elipse_mas_nao_no_canto_da_caixa():
-    oval = _figura(Oval, 0, 0, 100, 50) 
+    oval = _figura(Oval, 0, 0, 100, 50)
     assert oval.contem_ponto(50, 25)
-    assert not oval.contem_ponto(0, 0)  
+    assert not oval.contem_ponto(0, 0)
 
 
 def test_forma_poligonal_contem_ponto_no_centro_mas_nao_no_canto_da_caixa():
@@ -79,3 +78,26 @@ def test_estrela_contem_ponto_no_centro():
     estrela = _figura(Estrela, 0, 0, 100, 100)
     cx, cy, _, _ = estrela._centro_e_raios()
     assert estrela.contem_ponto(cx, cy)
+
+
+def test_mover_desloca_figura_dois_pontos():
+    retangulo = _figura(Retangulo, 10, 10, 30, 30)
+    retangulo.mover(5, -5)
+    assert (retangulo.x0, retangulo.y0, retangulo.x1, retangulo.y1) == (15, 5, 35, 25)
+
+
+def test_mover_desloca_todos_os_pontos_do_rabisco():
+    rabisco = Rabisco(0, 0, "black", "")
+    rabisco.atualizar(10, 10)
+    rabisco.mover(2, 3)
+    assert rabisco.pontos == [(2, 3), (12, 13)]
+
+
+def test_esta_dentro_da_area_quando_totalmente_contida():
+    retangulo = _figura(Retangulo, 10, 10, 20, 20)
+    assert retangulo.esta_dentro_da_area(0, 0, 100, 100)
+
+
+def test_esta_dentro_da_area_falso_quando_parcialmente_fora():
+    retangulo = _figura(Retangulo, 10, 10, 200, 200)
+    assert not retangulo.esta_dentro_da_area(0, 0, 100, 100)

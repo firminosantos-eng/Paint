@@ -1,9 +1,7 @@
-
 import json
 
 
 class RepositorioDesenho:
-
     def salvar(self, desenho, caminho):
         dados = {"figuras": desenho.para_lista_dict()}
         with open(caminho, "w", encoding="utf-8") as arquivo:

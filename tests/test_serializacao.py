@@ -1,4 +1,3 @@
-
 import json
 
 from paint.modelo.desenho import Desenho
@@ -13,6 +12,7 @@ def _figura(classe, x0, y0, x1, y1, cor_borda="black", cor_preenchimento="red"):
     figura = classe(x0, y0, cor_borda, cor_preenchimento)
     figura.atualizar(x1, y1)
     return figura
+
 
 def test_todas_as_classes_de_figura_fazem_round_trip_completo():
     for nome, classe in CLASSES_FIGURA.items():

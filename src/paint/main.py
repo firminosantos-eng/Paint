@@ -1,4 +1,3 @@
-
 import tkinter as tk
 
 from paint.modelo.desenho import Desenho
@@ -14,7 +13,7 @@ def main():
     controlador = ControladorDesenho(desenho, view)
     view.definir_controlador(controlador)
 
-    view.atualizar(desenho)  # estado inicial: canvas vazio
+    view.atualizar(desenho)
 
     view.executar()
 

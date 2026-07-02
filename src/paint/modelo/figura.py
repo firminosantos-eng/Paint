@@ -1,12 +1,10 @@
-
 import math
 from abc import ABC, abstractmethod
 
-TOLERANCIA_CLIQUE_LINHA = 4  
+TOLERANCIA_CLIQUE_LINHA = 4
 
 
 class Figura(ABC):
-
     def __init__(self, cor_borda, cor_preenchimento):
         self.cor_borda = cor_borda
         self.cor_preenchimento = cor_preenchimento
@@ -23,9 +21,12 @@ class Figura(ABC):
     def para_dict(self):
         raise NotImplementedError
 
+    @abstractmethod
+    def mover(self, dx, dy):
+        raise NotImplementedError
+
     def contem_ponto(self, x, y):
         primitivo, pontos = self.descricao_desenho()
-
         if primitivo == "linha":
             return _perto_de_alguma_aresta(x, y, pontos, TOLERANCIA_CLIQUE_LINHA)
         if primitivo == "retangulo":
@@ -36,9 +37,18 @@ class Figura(ABC):
             return _dentro_do_poligono(x, y, pontos)
         return False
 
+    def esta_dentro_da_area(self, ax0, ay0, ax1, ay1):
+        x_min, x_max = sorted((ax0, ax1))
+        y_min, y_max = sorted((ay0, ay1))
+        primitivo, pontos = self.descricao_desenho()
+        if primitivo in ("retangulo", "oval"):
+            coordenadas = [(pontos[0], pontos[1]), (pontos[2], pontos[3])]
+        else:
+            coordenadas = pontos
+        return all(x_min <= px <= x_max and y_min <= py <= y_max for px, py in coordenadas)
+
 
 class FiguraDoisPontos(Figura):
-
     def __init__(self, x, y, cor_borda, cor_preenchimento):
         super().__init__(cor_borda, cor_preenchimento)
         self.x0, self.y0 = x, y
@@ -46,6 +56,12 @@ class FiguraDoisPontos(Figura):
 
     def atualizar(self, x, y):
         self.x1, self.y1 = x, y
+
+    def mover(self, dx, dy):
+        self.x0 += dx
+        self.y0 += dy
+        self.x1 += dx
+        self.y1 += dy
 
     def incompleta(self):
         return (self.x0, self.y0) == (self.x1, self.y1)
@@ -90,7 +106,7 @@ class Oval(FiguraDoisPontos):
 
 class FormaRegular(FiguraDoisPontos):
     N_LADOS = None
-    ANGULO_INICIAL = -90  
+    ANGULO_INICIAL = -90
 
     def _vertices(self):
         cx, cy, rx, ry = self._centro_e_raios()
@@ -113,9 +129,8 @@ class Hexagono(FormaRegular):
 
 
 class Estrela(FiguraDoisPontos):
-
     PONTAS = 5
-    PROPORCAO_INTERNA = 0.45 
+    PROPORCAO_INTERNA = 0.45
 
     def descricao_desenho(self):
         cx, cy, rx, ry = self._centro_e_raios()
@@ -131,13 +146,15 @@ class Estrela(FiguraDoisPontos):
 
 
 class Rabisco(Figura):
-
     def __init__(self, x, y, cor_borda, cor_preenchimento):
         super().__init__(cor_borda, cor_preenchimento)
         self.pontos = [(x, y)]
 
     def atualizar(self, x, y):
         self.pontos.append((x, y))
+
+    def mover(self, dx, dy):
+        self.pontos = [(x + dx, y + dy) for x, y in self.pontos]
 
     def incompleta(self):
         return len(self.pontos) <= 1
@@ -161,7 +178,6 @@ class Rabisco(Figura):
         for x, y in pontos[1:]:
             figura.atualizar(x, y)
         return figura
-
 
 
 def _vertices_regulares(cx, cy, rx, ry, n_lados, angulo_inicial_graus):
