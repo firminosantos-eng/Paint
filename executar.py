@@ -1,10 +1,3 @@
-"""
-Atalho para rodar o projeto a partir da raiz do repositório, sem precisar
-configurar o PYTHONPATH manualmente.
-
-Uso:
-    python executar.py
-"""
 
 import sys
 from pathlib import Path

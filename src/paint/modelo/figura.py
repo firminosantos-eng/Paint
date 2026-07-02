@@ -1,19 +1,11 @@
-"""
-Modelo (Model): hierarquia de classes `Figura`.
-
-Entrega 3 (tag mvc.3): estas classes fazem parte do Model no padrão MVC.
-Não dependem de Tkinter — cada figura só conhece a própria geometria e
-oferece `descricao_desenho()`, que a View usa para saber o que desenhar,
-sem que o Model precise conhecer a API do Canvas. Isso também deixa o
-Model testável sem precisar de uma janela gráfica (ver Entrega 4).
-"""
 
 import math
 from abc import ABC, abstractmethod
 
+TOLERANCIA_CLIQUE_LINHA = 4  
+
 
 class Figura(ABC):
-    """Classe-base abstrata para todas as figuras do Paint."""
 
     def __init__(self, cor_borda, cor_preenchimento):
         self.cor_borda = cor_borda
@@ -21,25 +13,31 @@ class Figura(ABC):
 
     @abstractmethod
     def incompleta(self):
-        """True se a figura ainda não pode ser incluída no Desenho
-        (ex.: comprimento/área zero, poucos pontos)."""
         raise NotImplementedError
 
     @abstractmethod
     def descricao_desenho(self):
-        """Retorna (primitivo, pontos):
-          primitivo -> "linha" | "retangulo" | "oval" | "poligono"
-          pontos    -> coordenadas necessárias para desenhar esse primitivo
-
-        A View usa essa descrição para decidir qual comando do Canvas
-        chamar, sem que o Model precise saber nada sobre Tkinter.
-        """
         raise NotImplementedError
+
+    @abstractmethod
+    def para_dict(self):
+        raise NotImplementedError
+
+    def contem_ponto(self, x, y):
+        primitivo, pontos = self.descricao_desenho()
+
+        if primitivo == "linha":
+            return _perto_de_alguma_aresta(x, y, pontos, TOLERANCIA_CLIQUE_LINHA)
+        if primitivo == "retangulo":
+            return _dentro_do_retangulo(x, y, pontos)
+        if primitivo == "oval":
+            return _dentro_da_elipse(x, y, pontos)
+        if primitivo == "poligono":
+            return _dentro_do_poligono(x, y, pontos)
+        return False
 
 
 class FiguraDoisPontos(Figura):
-    """Base para figuras definidas por dois cantos: linha, retângulo,
-    oval e as formas prontas (que se ajustam à caixa delimitadora)."""
 
     def __init__(self, x, y, cor_borda, cor_preenchimento):
         super().__init__(cor_borda, cor_preenchimento)
@@ -47,7 +45,6 @@ class FiguraDoisPontos(Figura):
         self.x1, self.y1 = x, y
 
     def atualizar(self, x, y):
-        """Atualiza o segundo canto da figura (chamado durante o arraste)."""
         self.x1, self.y1 = x, y
 
     def incompleta(self):
@@ -59,6 +56,21 @@ class FiguraDoisPontos(Figura):
         rx = abs(self.x1 - self.x0) / 2
         ry = abs(self.y1 - self.y0) / 2
         return cx, cy, rx, ry
+
+    def para_dict(self):
+        return {
+            "tipo": type(self).__name__,
+            "x0": self.x0, "y0": self.y0,
+            "x1": self.x1, "y1": self.y1,
+            "cor_borda": self.cor_borda,
+            "cor_preenchimento": self.cor_preenchimento,
+        }
+
+    @classmethod
+    def de_dict(cls, dados):
+        figura = cls(dados["x0"], dados["y0"], dados["cor_borda"], dados["cor_preenchimento"])
+        figura.atualizar(dados["x1"], dados["y1"])
+        return figura
 
 
 class Linha(FiguraDoisPontos):
@@ -77,12 +89,8 @@ class Oval(FiguraDoisPontos):
 
 
 class FormaRegular(FiguraDoisPontos):
-    """Base para formas prontas com N lados iguais, inscritas na caixa
-    delimitadora — como no galeria de "Formas" do Word. Subclasses só
-    precisam definir `N_LADOS`."""
-
     N_LADOS = None
-    ANGULO_INICIAL = -90  # graus; -90 deixa o primeiro vértice apontando para cima
+    ANGULO_INICIAL = -90  
 
     def _vertices(self):
         cx, cy, rx, ry = self._centro_e_raios()
@@ -105,10 +113,9 @@ class Hexagono(FormaRegular):
 
 
 class Estrela(FiguraDoisPontos):
-    """Estrela de 5 pontas, inscrita na caixa delimitadora."""
 
     PONTAS = 5
-    PROPORCAO_INTERNA = 0.45  # raio dos vértices "internos" em relação ao externo
+    PROPORCAO_INTERNA = 0.45 
 
     def descricao_desenho(self):
         cx, cy, rx, ry = self._centro_e_raios()
@@ -124,7 +131,6 @@ class Estrela(FiguraDoisPontos):
 
 
 class Rabisco(Figura):
-    """Traço à mão livre: sequência de pontos conectados por segmentos."""
 
     def __init__(self, x, y, cor_borda, cor_preenchimento):
         super().__init__(cor_borda, cor_preenchimento)
@@ -139,10 +145,26 @@ class Rabisco(Figura):
     def descricao_desenho(self):
         return "linha", list(self.pontos)
 
+    def para_dict(self):
+        return {
+            "tipo": "Rabisco",
+            "pontos": [list(ponto) for ponto in self.pontos],
+            "cor_borda": self.cor_borda,
+            "cor_preenchimento": self.cor_preenchimento,
+        }
+
+    @classmethod
+    def de_dict(cls, dados):
+        pontos = dados["pontos"]
+        x0, y0 = pontos[0]
+        figura = cls(x0, y0, dados["cor_borda"], dados["cor_preenchimento"])
+        for x, y in pontos[1:]:
+            figura.atualizar(x, y)
+        return figura
+
+
 
 def _vertices_regulares(cx, cy, rx, ry, n_lados, angulo_inicial_graus):
-    """Calcula os vértices de um polígono regular de `n_lados`, inscrito
-    numa elipse de centro (cx, cy) e raios (rx, ry)."""
     passo = 360 / n_lados
     vertices = []
     for i in range(n_lados):
@@ -151,7 +173,52 @@ def _vertices_regulares(cx, cy, rx, ry, n_lados, angulo_inicial_graus):
     return vertices
 
 
-# Mapeia o nome da ferramenta (usado pela View) à classe correspondente.
+def _distancia_ponto_segmento(px, py, x1, y1, x2, y2):
+    dx, dy = x2 - x1, y2 - y1
+    if dx == 0 and dy == 0:
+        return math.hypot(px - x1, py - y1)
+    t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)
+    t = max(0.0, min(1.0, t))
+    proj_x, proj_y = x1 + t * dx, y1 + t * dy
+    return math.hypot(px - proj_x, py - proj_y)
+
+
+def _perto_de_alguma_aresta(x, y, pontos, tolerancia):
+    for (x1, y1), (x2, y2) in zip(pontos, pontos[1:]):
+        if _distancia_ponto_segmento(x, y, x1, y1, x2, y2) <= tolerancia:
+            return True
+    return False
+
+
+def _dentro_do_retangulo(x, y, pontos):
+    x0, y0, x1, y1 = pontos
+    x_min, x_max = sorted((x0, x1))
+    y_min, y_max = sorted((y0, y1))
+    return x_min <= x <= x_max and y_min <= y <= y_max
+
+
+def _dentro_da_elipse(x, y, pontos):
+    x0, y0, x1, y1 = pontos
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    rx, ry = abs(x1 - x0) / 2, abs(y1 - y0) / 2
+    if rx == 0 or ry == 0:
+        return False
+    return ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1
+
+
+def _dentro_do_poligono(x, y, vertices):
+    dentro = False
+    n = len(vertices)
+    for i in range(n):
+        x1, y1 = vertices[i]
+        x2, y2 = vertices[(i + 1) % n]
+        cruza = ((y1 > y) != (y2 > y)) and \
+            (x < (x2 - x1) * (y - y1) / (y2 - y1 + 1e-12) + x1)
+        if cruza:
+            dentro = not dentro
+    return dentro
+
+
 CLASSES_FIGURA = {
     "Linha": Linha,
     "Rabisco": Rabisco,
@@ -163,5 +230,9 @@ CLASSES_FIGURA = {
     "Estrela": Estrela,
 }
 
-# Formas que aparecem agrupadas no submenu "Formas" da View.
 FORMAS_PRONTAS = ["Triangulo", "Pentagono", "Hexagono", "Estrela"]
+
+
+def figura_de_dict(dados):
+    classe = CLASSES_FIGURA[dados["tipo"]]
+    return classe.de_dict(dados)

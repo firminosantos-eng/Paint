@@ -1,17 +1,10 @@
-"""
-Visão (View): janela Tkinter do Paint.
 
-Responsável só pela interface: monta os widgets, desenha o estado atual
-do Desenho no Canvas e encaminha eventos de mouse/menu para o Controller.
-Não decide o que fazer com cada figura — isso é papel do Controller e do
-Model. A View também não conhece a lógica interna de cada tipo de
-Figura: só chama `descricao_desenho()` e traduz o resultado para os
-comandos do Canvas.
-"""
 
 import tkinter as tk
 from tkinter import ttk
 from tkinter import colorchooser
+from tkinter import filedialog
+from tkinter import messagebox
 
 from paint.modelo.figura import CLASSES_FIGURA, FORMAS_PRONTAS
 
@@ -19,7 +12,7 @@ from paint.modelo.figura import CLASSES_FIGURA, FORMAS_PRONTAS
 class Janela:
     def __init__(self, root):
         self.root = root
-        self.controlador = None  # ligado depois de criado, em main.py
+        self.controlador = None  
 
         self.cor_borda_atual = "black"
         self.cor_preenchimento_atual = ""
@@ -29,12 +22,8 @@ class Janela:
     def definir_controlador(self, controlador):
         self.controlador = controlador
 
-    # -----------------------------------------------------------------
-    # Construção da interface
-    # -----------------------------------------------------------------
-
     def _montar_interface(self):
-        self.root.title("Projeto Paint — Entrega 3 (MVC)")
+        self.root.title("Projeto Paint — Entrega 4 (State + Salvar/Abrir)")
         frame = tk.Frame(self.root)
         paddings = {"padx": 5, "pady": 5}
 
@@ -42,6 +31,8 @@ class Janela:
         label.grid(column=0, row=0, sticky=tk.W, **paddings)
 
         self.tipo_ferramenta_var = tk.StringVar(self.root, value="Linha")
+        self.tipo_ferramenta_var.trace_add("write", self._ferramenta_alterada)
+
         menu_ferramenta = self._montar_menu_ferramenta()
         botao_ferramenta = ttk.Menubutton(frame, textvariable=self.tipo_ferramenta_var,
                                            menu=menu_ferramenta, direction="below")
@@ -71,8 +62,14 @@ class Janela:
                                      command=self._pedir_desfazer)
         botao_desfazer.grid(column=7, row=0, sticky=tk.W, **paddings)
 
+        botao_salvar = ttk.Button(frame, text="Salvar", command=self._salvar)
+        botao_salvar.grid(column=8, row=0, sticky=tk.W, **paddings)
+
+        botao_abrir = ttk.Button(frame, text="Abrir", command=self._abrir)
+        botao_abrir.grid(column=9, row=0, sticky=tk.W, **paddings)
+
         self.canvas = tk.Canvas(frame, bg="white", width=700, height=600)
-        self.canvas.grid(column=0, row=1, columnspan=8, sticky=tk.W, **paddings)
+        self.canvas.grid(column=0, row=1, columnspan=10, sticky=tk.W, **paddings)
 
         frame.pack()
 
@@ -80,10 +77,10 @@ class Janela:
         self.canvas.bind("<B1-Motion>", self._evento_arrastar)
         self.canvas.bind("<ButtonRelease-1>", self._evento_soltar)
         self.root.bind("<Control-z>", lambda event: self._pedir_desfazer())
+        self.root.bind("<Control-s>", lambda event: self._salvar())
+        self.root.bind("<Control-o>", lambda event: self._abrir())
 
     def _montar_menu_ferramenta(self):
-        """Monta o menu 'Ferramenta', com um submenu 'Formas' para as
-        figuras prontas — mesma ideia da galeria de Formas do Word."""
         menu = tk.Menu(self.root, tearoff=False)
 
         for nome in CLASSES_FIGURA:
@@ -98,13 +95,14 @@ class Janela:
 
         return menu
 
-    # -----------------------------------------------------------------
-    # Eventos encaminhados ao Controller
-    # -----------------------------------------------------------------
+
+    def _ferramenta_alterada(self, *_args):
+        if self.controlador is not None:
+            self.controlador.selecionar_ferramenta(self.tipo_ferramenta_var.get())
 
     def _evento_pressionar(self, event):
         if self.controlador is not None:
-            self.controlador.ao_pressionar_botao(self.tipo_ferramenta_var.get(), event.x, event.y)
+            self.controlador.ao_pressionar_botao(event.x, event.y)
 
     def _evento_arrastar(self, event):
         if self.controlador is not None:
@@ -141,12 +139,37 @@ class Janela:
         if self.controlador is not None:
             self.controlador.definir_cor_preenchimento("")
 
-    # -----------------------------------------------------------------
-    # Renderização do estado do Model
-    # -----------------------------------------------------------------
+    def _salvar(self):
+        if self.controlador is None:
+            return
+        caminho = filedialog.asksaveasfilename(
+            title="Salvar desenho",
+            defaultextension=".json",
+            filetypes=[("Desenho (JSON)", "*.json")],
+        )
+        if not caminho:
+            return
+        try:
+            self.controlador.salvar(caminho)
+        except OSError as erro:
+            messagebox.showerror("Erro ao salvar", str(erro))
+
+    def _abrir(self):
+        if self.controlador is None:
+            return
+        caminho = filedialog.askopenfilename(
+            title="Abrir desenho",
+            defaultextension=".json",
+            filetypes=[("Desenho (JSON)", "*.json")],
+        )
+        if not caminho:
+            return
+        try:
+            self.controlador.abrir(caminho)
+        except (OSError, ValueError, KeyError) as erro:
+            messagebox.showerror("Erro ao abrir", str(erro))
 
     def atualizar(self, desenho, figura_em_construcao=None):
-        """Redesenha o canvas inteiro a partir do estado atual do Model."""
         self.canvas.delete("all")
         for figura in desenho:
             self._desenhar_figura(figura)
@@ -170,8 +193,6 @@ class Janela:
             if len(pontos) >= 3:
                 self.canvas.create_polygon(pontos, outline=figura.cor_borda,
                                             fill=figura.cor_preenchimento, **opcoes)
-
-    # -----------------------------------------------------------------
 
     def executar(self):
         self.root.mainloop()
