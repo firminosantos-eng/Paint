@@ -69,7 +69,7 @@ seleção, ou clique e arraste numa área vazia para selecionar por retângulo
 
 ## Como rodar os testes
 
-Os testes cobrem só o Model (`Figura` e `Desenho`) — não precisam de
+Os testes cobrem só o Modelo (`Figura` e `Desenho`) — não precisam de
 display gráfico, então rodam em qualquer ambiente, inclusive CI.
 
 ```bash
@@ -114,30 +114,30 @@ projeto-paint/
 | **Modelo**      | `Figura` e subclasses (`figura.py`) | Geometria e regras de cada tipo de figura, mover, clique/seleção e serialização. **Não depende de Tkinter.** |
 | **Modelo**      | `Desenho` (`desenho.py`)            | Coleção de figuras: incluir, remover, desfazer, limpar, reordenar (z-order), buscar por ponto/área, serializar. |
 | **Modelo**      | `RepositorioDesenho` (`repositorio_desenho.py`) | Lê/escreve o `Desenho` em disco (JSON) — só o "envelope" do arquivo, não o formato de cada figura. |
-| **Visão**       | `Janela` (`janela.py`)              | Monta a interface Tkinter, desenha o estado do Model no Canvas (inclusive seleção), encaminha eventos ao Controller. |
-| **Controlador** | `ControladorDesenho` (`controlador_desenho.py`) | Recebe os eventos da View, delega ao Estado (ferramenta) atual, mantém a seleção e a área de transferência, aciona o `RepositorioDesenho`, manda a View se redesenhar. |
+| **Visão**       | `Janela` (`janela.py`)              | Monta a interface Tkinter, desenha o estado do Modelo no Canvas (inclusive seleção), encaminha eventos ao controlador. |
+| **Controlador** | `ControladorDesenho` (`controlador_desenho.py`) | Recebe os eventos da visão, delega ao Estado (ferramenta) atual, mantém a seleção e a área de transferência, aciona o `RepositorioDesenho`, manda a visão se redesenhar. |
 | **Controlador** | `EstadoFerramenta` e subclasses (`estado_ferramenta.py`, `estado_selecao.py`) | Padrão *State*: cada ferramenta (Linha, Retângulo, Selecionar, ...) é um estado que sabe reagir aos eventos de mouse. |
 
 O fluxo de uma interação é sempre o mesmo:
 
 ```
-usuário → View (evento de mouse/menu) → Controller → Model (Desenho/Figura)
+usuário → visão (evento de mouse/menu) → controlador → Modelo (Desenho/Figura)
                                               ↓
-                                        View.atualizar(...)
+                                        visão.atualizar(...)
 ```
 
-View e Model nunca conversam diretamente entre si — toda comunicação passa
-pelo Controller. Isso é o que torna o Model testável sem precisar de uma
+visão e Modelo nunca conversam diretamente entre si — toda comunicação passa
+pelo controlador. Isso é o que torna o Modelo testável sem precisar de uma
 janela gráfica: cada `Figura` não desenha em um Canvas diretamente, ela só
 descreve a si mesma (`descricao_desenho()`), e é a `Janela` quem traduz essa
 descrição para comandos do Tkinter.
 
 ## Padrão State
 
-Antes, o Controller decidia qual classe de `Figura` instanciar com um
+Antes, o controlador decidia qual classe de `Figura` instanciar com um
 `if tipo == "Linha": ... elif tipo == "Retangulo": ...`. Agora essa decisão
 virou um objeto: a ferramenta selecionada é um `EstadoFerramenta`, guardado
-em `ControladorDesenho.estado_atual`. O Controller não pergunta mais "qual
+em `ControladorDesenho.estado_atual`. O controlador não pergunta mais "qual
 ferramenta é essa?" — ele só repassa os três eventos de mouse para o estado:
 
 ```python
@@ -147,7 +147,7 @@ def ao_pressionar_botao(self, x, y, ctrl=False):
 
 As oito ferramentas de desenho (Linha, Rabisco, Retângulo, Oval, Triângulo,
 Pentágono, Hexágono, Estrela) têm o mesmo comportamento — criar uma figura
-no clique, atualizá-la no arraste, incluí-la no Model ao soltar —, então
+no clique, atualizá-la no arraste, incluí-la no Modelo ao soltar —, então
 essa lógica mora uma única vez em `EstadoDesenharFigura`; cada estado
 nomeado (`EstadoLinha`, `EstadoOval`, ...) só indica qual classe de `Figura`
 instanciar. A ferramenta **Selecionar** (`EstadoSelecao`, Entrega 5) é um
@@ -185,19 +185,19 @@ troca `estado_atual` — sem nenhum condicional por tipo.
 - [x] **Entrega 3** (tag `mvc.3`) — Separação de responsabilidades com MVC:
   - Projeto reorganizado na estrutura de pastas recomendada
     (`src/paint/{modelo,visao,controlador}`, `tests/`).
-  - **Model**: `Figura`/subclasses (geometria pura, sem Tkinter) e `Desenho`
+  - **Modelo**: `Figura`/subclasses (geometria pura, sem Tkinter) e `Desenho`
     (coleção de figuras, com `incluir`/`desfazer`/`limpar`).
-  - **View**: classe `Janela`, única responsável por widgets Tkinter e por
+  - **visão**: classe `Janela`, única responsável por widgets Tkinter e por
     traduzir `descricao_desenho()` em comandos do Canvas.
-  - **Controller**: classe única `ControladorDesenho`, com um método por
+  - **controlador**: classe única `ControladorDesenho`, com um método por
     evento (`ao_pressionar_botao`, `ao_arrastar`, `ao_soltar_botao`,
     `desfazer`, `definir_cor_borda`, `definir_cor_preenchimento`).
-  - Como consequência da separação, o Model passou a ser testável sem
+  - Como consequência da separação, o Modelo passou a ser testável sem
     depender de uma janela gráfica — a base para a Entrega 4.
 
 - [x] **Entrega 4** (tag `state-testes.4`) — Padrão State, persistência e testes:
   - **State**: `EstadoFerramenta` (`estado_ferramenta.py`) elimina os
-    últimos condicionais por tipo de figura/ferramenta no Controller — a
+    últimos condicionais por tipo de figura/ferramenta no controlador — a
     ferramenta selecionada agora é um objeto, não uma string comparada em
     cadeia de `if`.
   - **Salvar/Abrir**: formato JSON. Cada `Figura` sabe se converter para
@@ -224,9 +224,9 @@ troca `estado_atual` — sem nenhum condicional por tipo.
     figuras selecionadas (os botões de cor passam a agir sobre a seleção
     quando ela não está vazia).
   - Tudo funciona com **seleção múltipla** (lista `selecionadas` no
-    Controller), incluindo mover, apagar, copiar/colar e mudar cores de
+    controlador), incluindo mover, apagar, copiar/colar e mudar cores de
     várias figuras de uma vez.
-  - Novos métodos do Model, usados pela seleção: `Desenho.remover`,
+  - Novos métodos do Modelo, usados pela seleção: `Desenho.remover`,
     `figura_no_ponto`, `figuras_na_area`, e `Figura.esta_dentro_da_area`
     (reaproveita `descricao_desenho()`, no mesmo espírito de
     `contem_ponto`).
@@ -266,16 +266,12 @@ sabe responder se um ponto está sobre ela (`contem_ponto(x, y)`) ou se está
 totalmente dentro de uma área (`esta_dentro_da_area(...)`, usada na seleção
 por retângulo) e sabe se converter para/de dicionário (`para_dict()` /
 `ClasseFigura.de_dict(...)`) — nada disso depende de Tkinter. A `Janela`
-(View) só traduz `descricao_desenho()` para comandos do Canvas; o
+(visão) só traduz `descricao_desenho()` para comandos do Canvas; o
 `RepositorioDesenho` só grava/lê o JSON resultante de `para_dict()`. As
 cores de borda e preenchimento ficam guardadas na própria figura, então o
-Controller pode alterá-las diretamente quando a figura está selecionada.
+controlador pode alterá-las diretamente quando a figura está selecionada.
 
-## Convenções de código
 
-- Código sem comentários (`#`) nem docstrings — nomes de classes, métodos
-  e variáveis em português, descritivos o suficiente para dispensar
-  explicação inline. Documentação de contexto/arquitetura fica neste README.
 
 ## Créditos
 
